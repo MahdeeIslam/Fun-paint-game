@@ -46,12 +46,11 @@ class Grid():
     #Grid method to make a grid based on class variables
     #O(n^2) due to the implentation of 2 for loops in order to create a two by two grid 
     def MakeGrid(self,x: int,y:int) -> list:
-     MAX_CAPACITY = x*y
-     GridArray = referential_array.ArrayR(MAX_CAPACITY)
+     GridArray = referential_array.ArrayR(x)
      for i in range(x):
-        ListArray = referential_array.ArrayR(x)
+        ListArray = referential_array.ArrayR(y)
         for j in range(y):
-            ListArray[j]=SetLayerStore(x,y,(255,255,255))
+            ListArray[j]=SetLayerStore()
         GridArray[i] = ListArray
      return GridArray
 
@@ -61,13 +60,13 @@ class Grid():
         if the brush size is already MAX_BRUSH,
         then do nothing.
         """
-        MAX_BRUSH = 5
-        brush_size = 0 #Inititliase brush size to 0
-        while brush_size < MAX_BRUSH:
-            brush_size+=1  #Increment brush size if it is less than maximum
-            if brush_size == MAX_BRUSH:
+        
+        #Inititliase brush size to 0
+        while self.DEFAULT_BRUSH_SIZE < self.MAX_BRUSH:
+            self.DEFAULT_BRUSH_SIZE+=1  #Increment brush size if it is less than maximum
+            if self.DEFAULT_BRUSH_SIZE == self.MAX_BRUSH:
                 break
-        return brush_size
+        return self.DEFAULT_BRUSH_SIZE
         
 
     def decrease_brush_size(self) -> int:
@@ -76,21 +75,21 @@ class Grid():
         if the brush size is already MIN_BRUSH,
         then do nothing.
         """
-        MIN_BRUSH = 0
-        brush_size = 0
-        while brush_size > MIN_BRUSH:
-            brush_size-=1
-            if brush_size == MIN_BRUSH:
+        
+        
+        while self.DEFAULT_BRUSH_SIZE > self.MIN_BRUSH:
+            self.DEFAULT_BRUSH_SIZE-= 1
+            if self.DEFAULT_BRUSH_SIZE == self.MIN_BRUSH:
                 break
-        return brush_size  
+        return self.DEFAULT_BRUSH_SIZE
     
     def special(self):
         """
         Activate the special affect on all grid squares.
         """
-        for element in self.grid:
-            for i in element:
-                self.special()
+        for i in range(0,self.x):
+            for j in range(0,self.y):
+                self.grid[i][j].special()
 
     
     def __getitem__(self,x):

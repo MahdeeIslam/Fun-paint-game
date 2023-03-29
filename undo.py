@@ -1,8 +1,16 @@
 from __future__ import annotations
 from action import PaintAction
 from grid import Grid
+from data_structures.stack_adt import ArrayStack
 
 class UndoTracker:
+
+    UndoStack : ArrayStack
+    RedoStack : ArrayStack
+
+    def __init__(self) -> None:
+        self.UndoStack = ArrayStack(1000)
+        self.RedoStack = ArrayStack(1000)
 
     def add_action(self, action: PaintAction) -> None:
         """

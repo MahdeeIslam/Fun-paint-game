@@ -302,10 +302,18 @@ class MyWindow(arcade.Window):
         px: x position of the brush.
         py: y position of the brush.
         """
-        self.layer = layer
-        self.px = px
-        self.py = py
-        SetLayerStore.get_color()
+        # go through grid
+        #check if the point is more than manhattan_distance
+        #if manhattan distance  = more, dont paint
+        #if manhattan distance = less, paint
+        for i in range(self.grid.x):
+            for j in range(self.grid.y):
+                manhattan_distance = abs(px-i) + abs(py-j)
+                if manhattan_distance <= self.grid.DEFAULT_BRUSH_SIZE:
+                    self.grid[i][j].add(layer)
+            
+
+
         
 
     def on_undo(self):
@@ -318,7 +326,7 @@ class MyWindow(arcade.Window):
 
     def on_special(self):
         """Called when the special action is requested."""
-        SetLayerStore.special()
+        self.grid.special()
 
     def on_replay_start(self):
         """Called when the replay starting is requested."""
