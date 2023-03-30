@@ -5,6 +5,11 @@ from grid import Grid
 from layer_util import get_layers, Layer
 from layers import lighten
 from layer_store import SetLayerStore
+from action import PaintStep,PaintAction
+from undo import UndoTracker
+from replay import *
+
+
 class MyWindow(arcade.Window):
     """ Painter Window """
 
@@ -287,13 +292,16 @@ class MyWindow(arcade.Window):
 
     def on_init(self):
         """Initialisation that occurs after the system initialisation."""
-        pass
+        self.UndoTracker = UndoTracker()
+        self.ReplayTracker = ReplayTracker()
+
+        
 
     def on_reset(self):
         """Called when a window reset is requested."""
         pass
 
-    def on_paint(self, layer: Layer, px, py):
+    def on_paint(self, layer: Layer, px: int, py:int):
         """
         Called when a grid square is clicked on, which should trigger painting in the vicinity.
         Vicinity squares outside of the range [0, GRID_SIZE_X) or [0, GRID_SIZE_Y) can be safely ignored.
@@ -301,51 +309,192 @@ class MyWindow(arcade.Window):
         layer: The layer being applied.
         px: x position of the brush.
         py: y position of the brush.
-        """
-        # go through grid
-        #check if the point is more than manhattan_distance
-        #if manhattan distance  = more, dont paint
-        #if manhattan distance = less, paint
-        for i in range(self.grid.x):
-            for j in range(self.grid.y):
-                manhattan_distance = abs(px-i) + abs(py-j)
-                if manhattan_distance <= self.grid.DEFAULT_BRUSH_SIZE:
-                    self.grid[i][j].add(layer)
-            
-
-
         
+        Args:
+        - layer = Layer being pained
+        - px = x position of the brush.
+        - py = y position of the brush.
 
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+
+        Complexity:
+        - As both the loops will run for n-1 times, the best case will be equal to the worst case.
+          As both loops will run for (n-1) times, the overall time complexity can be displayed by,
+          O(self.grid.x) * O(self.grid.y) + O(add_action) + O(k) where k is a constant representing the constant operations. 
+          If we allow "n" to self.grid.x and self.grid.y,being represented by n = self.grid.x = self.grid.y, 
+          the runtime can be displayed by O(n) * O(n) + O(add_action) + O(k).Simplified further, this can be represented as, 
+          O(n^2) + O(add_action) + O(k) --> O(n^2 + add_action + k)
+        
+        """
+        PaintList = [] #Assignment is always constant --> O(1)
+        for i in range(self.grid.x): #Will run for self.grid.x times
+            for j in range(self.grid.y): #Will run for self.grid.y times
+                manhattan_distance = abs(px-i) + abs(py-j) #Will run for i,j times
+                if manhattan_distance <= self.grid.DEFAULT_BRUSH_SIZE: #Assignment is always constant --> O(1)
+                    self.grid[i][j].add(layer) #Time complexity of O(self.grid.add) and will run for i,j times
+                    PaintList.append(PaintStep((i,j),layer)) #Appending is always constant --> O(1)
+        self.UndoTracker.add_action(PaintAction(PaintList,False)) #Runtime of --> O(add_action)   
+        self.ReplayTracker.add_action(PaintAction(PaintList,False)) #Runtime of --> O(add_action)          
+        
     def on_undo(self):
-        """Called when an undo is requested."""
-        pass
+        """
+        Called when an undo is requested.
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+        
+        Complexity:
+        - Best case = worst case = O(undo)
+
+        """
+        self.UndoTracker.undo(self.grid) # Run time will be --> O(undo)
 
     def on_redo(self):
-        """Called when a redo is requested."""
-        pass
+        """
+        Called when a redo is requested.
+        
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+        
+        Complexity:
+        - Best case = worst case = O(redo)
+        """
+        self.UndoTracker.redo(self.grid)
 
     def on_special(self):
-        """Called when the special action is requested."""
-        self.grid.special()
+        """
+        Called when the special action is requested.
+        
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not raise anything
+
+        Complexity:
+        - As for self.grid.special, in the grid class there are two for loops implemented, 
+          each for loop will run x times and y times no matter circumstance, therefore, 
+          best case = worst case. As the two for loops will be run x times and y times, 
+          the time complexity can be written as O(x) * O(y), re-writing both x and y as "n", we
+          get O(n) * O(n) --> O(k*n^2 ) where k is a constant due to the recursive calling of special each time. Therefore,
+          the overall complexity is represented by O(k*n^2) + O(add_action) --> O(k*n^2 + add_action)
+        """
+        self.grid.special() # grid special is --> O(k*n^2) where k is some integer
+        self.UndoTracker.add_action(PaintAction([],True)) #run time of --> O(add_action)
+        self.ReplayTracker.add_action(PaintAction([],True)) #run time of --> O(add_action)
 
     def on_replay_start(self):
-        """Called when the replay starting is requested."""
-        pass
+        """
+        Called when the replay starting is requested.
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+        
+        Complexity:
+        - Best case = worst case = O(start_replay)
+        """
+        self.ReplayTracker.start_replay() #Run time of --> O(start_replay)
 
     def on_replay_next_step(self) -> bool:
         """
         Called when the next step of the replay is requested.
         Returns whether the replay is finished.
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Returns a boolean depending on result of play_next_action
+        
+        Complexity:
+        - Best case = worst case = O(play_next_action).
+          O(play_next_action) can be written as:
+          As all operations are constant except of those that are of redo_apply and undo_apply,
+          it is safe to assume that best case = worst case. If redo apply is called, then the 
+          run time complexity is equal to O(k) + O(redo_apply) where k is an integer which represents
+          the constant operations. If Undo apply is called, then the 
+          run time complexity is equal to O(k) + O(undo_apply) where k is an integer which represents
+          the constant operations.
         """
-        return True
+        self.ReplayTracker.play_next_action(self.grid) #Run time of --> O(play_next_action)
 
     def on_increase_brush_size(self):
-        """Called when an increase to the brush size is requested."""
-        self.grid.increase_brush_size()
+        """
+        Called when an increase to the brush size is requested.
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+
+        Complexity:
+        - best case = worst case = O(increase_brush_size).
+          O(increase_brush_size) can be written as:
+          As we do not always know the default brush size, there are best and worst cases. Best case
+          is if the default brush size is already equal to the brush size in which the while loop will 
+          not need to increment "n" times, rather it will always stop at one size, therefore, Best Case = O(1).
+          The worst case is if it needs to increment, in which it will increment "n" times so that the default 
+          brush size is equal to the Maximum brush size, therefore, worst case = O(n)
+        """
+        self.grid.increase_brush_size() #O(increase_brush_size)
 
     def on_decrease_brush_size(self):
-        """Called when a decrease to the brush size is requested."""
-        self.grid.decrease_brush_size()
+        """
+        Called when a decrease to the brush size is requested.
+
+        Args:
+        - self
+
+        Raises:
+        - Does not raise any errors
+
+        Returns:
+        - Does not return anything
+
+        Complexity:
+        - best case = worst case = O(increase_brush_size)
+          O(increase_brush_size) can be written as:
+          As we do not always know the default brush size, there are best and worst cases. Best case
+          is if the default brush size is already equal to the brush size in which the while loop will 
+          not need to decrement "n" times, rather it will always stop at one size, therefore, Best Case = O(1).
+          The worst case is if it needs to decrement, in which it will increment "n" times so that the default 
+          brush size is equal to the Minimum brush size, therefore, worst case = O(n)
+
+        """
+        self.grid.decrease_brush_size() #O(increase_brush_size)
 
 def main():
     """ Main function """
